@@ -1,0 +1,63 @@
+---
+- hosts: all
+  connection: local
+  
+  tasks:
+  - name: Running mvn clean install (building app)
+    shell: "mvn clean install"
+    register: mvn_result
+
+  - name: mvn install task output
+    debug:
+     var: mvn_result
+
+  - name: Log into DockerHub
+    docker_login:
+      username: nicefemi
+      password: "{{ lookup('env','dockerhub_pass') }}"
+      email: oamosu14@gmail.com
+    register: login_dockerhub_result
+
+  - name: dockerhub login docker hub output
+    debug:
+     var: login_dockerhub_result
+  
+  - name: Build docker image and push it to docker hub
+    docker_image:
+      build:
+        path: ./
+      name: nicefemi/app-demo
+      tag: v1
+      push: yes
+      source: build
+    register: build_push_image_result
+
+  - name: image build and push output
+    debug:
+     var: build_push_image_result
+
+  - name: Create application docker container
+    docker_container:
+      name: app-demo
+      image: nicefemi/app-demo:v1
+      state: started
+      recreate: yes
+      ports:
+        - 8080:8080
+    register: create_container_result
+  
+  - name: Create application container output
+    debug:
+     var: create_container_result
+
+  - name: Restart a container
+    docker_container:
+      name: app-demo
+      image: nicefemi/app-demo:v1
+      state: started
+      restart: yes
+    register: restart_container_result
+
+  - name: restart container output
+    debug:
+     var: restart_container_result
